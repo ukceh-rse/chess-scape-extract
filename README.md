@@ -1,13 +1,19 @@
 # README
 
-Simple script for extracting point timeseries data from the CHESS-SCAPE dataset. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios. This script will extract out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble for a specified year for RCP8.5 only. Data will be linearly interpolated from a 360day calendar to a gregorian calendar. The script will output a csv file YYYY_ENSMEM_LON_LAT.csv with rows representing the days of the year and columns for:
+Simple script for extracting point timeseries data from the [CHESS-SCAPE dataset](https://catalogue.ceda.ac.uk/uuid/8194b416cbee482b89e0dfbe17c5786c/) stored in JASMIN's S3 object store. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios at a daily, 1km resolution. This script will extract out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble for a specified year for RCP8.5 only. Data will be linearly interpolated from a 360day calendar to a gregorian calendar using Xarray's [convert_calendar](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.convert_calendar.html) function. The script will output a csv file YYYY_ENSMEM_LON_LAT.csv with rows representing the days of the year and columns for:
 - RAD: Total shortwave radiation in MJ/m^2/day
 - MINTMP: Minimum temperature in degC
 - MAXTMP: Maximum temperature in degC
 - VP: Vapour pressure in kPa
 - WIND: Surface wind speed in m/s
 - RAIN: Total precipitation in mm/day
-- CO2: CO2 concentration according to the RCP8.5 pathway (note this only varies by calendar year, so will be the same for every day of a given calendar year). 
+- CO2: CO2 concentration according to the RCP8.5 pathway (note this only varies by calendar year, so will be the same for every day of a given calendar year).
+
+The vapour pressure is derived from the specific humidity $q$ and surface air pressure $p$ using the following equation:
+
+$$e\approx \frac{qp}{0.622 + 0.378q}$$
+
+It was designed with the R-version of the LINGRA-N Grass Yield model in mind, but could easily be adapted for other use-cases.
 
 ## Installation
 
@@ -40,18 +46,26 @@ to install into a new environment using the conda environment file provided here
 
 #### Pip
 
+```python -m venv ~/chess-scape-extract-env```
+```source ~/chess-scape-extract-env/bin/activate```
+
+to create a new virtual python environment, then
+
 ```pip install numpy scipy xarray pandas>=2 zarr>=3 dask cftime s3fs pyproj```
 
 or
 
 ```pip install -r requirements.txt```
 
-to install using the requirements file provided here.
+to install.
 
+Now that you have an environment suitable for running the script, obtain a copy of it by downloading the script directly from the file page, or cloning the repository with 
+
+```git clone git@github.com:ukceh-rse/chess-scape-extract.git```
 
 ## Running instructions
 
-Once installed, the script can be run as e.g.:
+Once installed, the script can be run by navigating to the folder containing it and executing it as e.g.:
 
 ```python extract.py --lon -1 --lat 52 --year 2020 --ensmem 01```
 

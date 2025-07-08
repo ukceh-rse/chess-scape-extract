@@ -13,7 +13,7 @@ The vapour pressure is derived from the specific humidity $q$ and surface air pr
 
 $$e\approx \frac{qp}{0.622 + 0.378q}$$
 
-It was designed with the R-version of the LINGRA-N Grass Yield model in mind, but could easily be adapted for other use-cases.
+It was designed with the R-version of the [LINGRA-N Grass Yield model](https://models.pps.wur.nl/r-version-lingra-model) in mind, but could easily be adapted for other use-cases.
 
 ## Installation
 
@@ -59,7 +59,7 @@ or
 
 to install.
 
-Now that you have an environment suitable for running the script, obtain a copy of it by downloading the script directly from the file page, or cloning the repository with 
+Now that you have an environment suitable for running the script, obtain a copy of it by downloading the script directly from the [script file page](https://github.com/ukceh-rse/chess-scape-extract/blob/main/extract.py), or cloning the repository with 
 
 ```git clone git@github.com:ukceh-rse/chess-scape-extract.git```
 

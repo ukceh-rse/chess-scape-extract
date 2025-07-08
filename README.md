@@ -1,6 +1,6 @@
 # README
 
-Simple script for extracting point timeseries data from the [CHESS-SCAPE dataset](https://catalogue.ceda.ac.uk/uuid/8194b416cbee482b89e0dfbe17c5786c/) stored in JASMIN's S3 object store. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios at a daily, 1km resolution. This script extracts out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble for a specified year for RCP8.5 only. Data is linearly interpolated from a 360day calendar to a gregorian calendar using Xarray's [convert_calendar](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.convert_calendar.html) function. The script outputs a csv file YYYY_ENSMEM_LON_LAT.csv with rows representing the days of the year and columns for:
+Simple script for extracting point timeseries data from the [CHESS-SCAPE dataset](https://catalogue.ceda.ac.uk/uuid/8194b416cbee482b89e0dfbe17c5786c/) stored in JASMIN's S3 object store. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios at a daily, 1km resolution. This script extracts out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble (**Note:** Only works for ensmem 01 for now) for a specified year for RCP8.5 only. Data is linearly interpolated from a 360day calendar to a gregorian calendar using Xarray's [convert_calendar](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.convert_calendar.html) function. The script outputs a csv file YYYY_ENSMEM_LON_LAT.csv with rows representing the days of the year and columns for:
 - DOY: Day of year
 - RAD: Total shortwave radiation in MJ/m^2/day
 - MINTMP: Minimum temperature in degC
@@ -41,7 +41,7 @@ to create a new environment in which to run this script, or:
 
 to install into an existing environment, or:
 
-```conda create --name chess-scape-extract-env -f envfile.txt```
+```conda create --name chess-scape-extract-env -f conda-envfile.txt```
 
 to install into a new environment using the conda environment file provided here.
 

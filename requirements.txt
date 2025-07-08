@@ -1,0 +1,9 @@
+numpy
+scipy
+xarray
+pandas>=2.0
+zarr>=3.0
+dask
+cftime
+s3fs
+pyproj

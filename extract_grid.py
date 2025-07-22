@@ -21,18 +21,32 @@ logging.basicConfig(
 # user inputs
 parser = argparse.ArgumentParser()
 parser.add_argument('--ensmem', type=str, required=True)
-parser.add_argument('--year', type=int, required=True)
-parser.add_argument('--lon', type=float, required=True)
-parser.add_argument('--lat', type=float, required=True)
+parser.add_argument('--outpath', type=str, required=True)
 args = parser.parse_args()
 
-logging.info('Extracting out nearest grid point to ' + str(args.lon) + ', ' + str(args.lat) + ' for year ' + str(args.year) + ' and ensmem ' + args.ensmem)
 ensmem = args.ensmem # '01', '04', '06' or '15'
-lon = args.lon
-lat = args.lat
-year = args.year
+outpath = args.outpath
 
-# load dataset from cloud
+# create time coords
+dayindex = pd.date_range("1/1/1981", "31/12/2079")
+years = dayindex.year.values
+doys = dayindex.dayofyear.values
+
+
+# read in CO2 data from cloud
+logging.info('Getting CO2 data from cloud')
+CO2datayr = pd.read_csv('s3://chess-scape-co2files/CHESS-SCAPE_RCP85_' + ensmem + '.csv', storage_options={'endpoint_url': "https://fdri-o.s3-ext.jc.rl.ac.uk", 'anon': True})
+CO2datayr = CO2datayr.set_index("YEAR")
+
+# put onto daily index (from yearly)
+dayindex = pd.date_range("1/1/1981", "31/12/2079")
+CO2_daily = pd.DataFrame(index = dayindex, 
+                         columns = ['CO2'])
+years = np.unique(dayindex.year.values)
+for year in years:
+    CO2_daily.loc[str(year)] = CO2datayr.loc[str(year)]
+
+# load CHESS-SCAPE dataset from cloud
 # zarr v3 method
 logging.info('Loading cloud datasets')
 fs = s3fs.S3FileSystem(anon=True, asynchronous=True, endpoint_url="https://chess-scape-o.s3-ext.jc.rl.ac.uk")
@@ -56,65 +70,59 @@ ds = xr.merge([ds_tmax, ds_tmin, ds_rsds, ds_sfcWind, ds_pr, ds_psurf, ds_huss])
 ds = ds.set_coords(['lat','lon'])
 
 
-
-# Convert lon/lat to OSGB coords
-proj = pyproj.Transformer.from_crs(4326, 27700, always_xy=True)
-try: # needed to get around occasional irregular failure of conversion on first attempt
-    x,y = proj.transform(lon,lat, errcheck=True)
-except pyproj.exceptions.ProjError:
-    x,y = proj.transform(lon,lat, errcheck=True)
-
-
-# select out nearest gridpoint & year
-logging.info('Extracting out nearest gridpoint')
+# select out & load coord block into RAM
+xslice = slice(200000,300000)
+yslice = slice(400000,500000)
+tslice = slice("1981-01-01", "2079-12-31")
 with ProgressBar():
-    dspoint = ds.sel(x=x, y=y, method='nearest').compute()
-dspoint_year = dspoint.sel(time=str(year))
-
+    dschunk = ds.sel(x=xslice, y=yslice, time=tslice).compute()
+    
+# check there is some data there
+if np.all(np.isnan(dschunk)):
+    logging.info('No data present in this chunk, exiting...')
+    sys.exit()
 
 # convert to gregorian calendar from 360day
-dspoint_year_greg = dspoint_year.convert_calendar('gregorian', align_on='date', missing=np.nan)
-dspoint_year_greg = dspoint_year_greg.interpolate_na(dim='time', fill_value="extrapolate")
+dschunk_greg = dschunk.convert_calendar('gregorian', align_on='date', missing=np.nan)
+dschunk_greg = dschunk_greg.interpolate_na(dim='time', fill_value="extrapolate")
 
 
 # convert units
 logging.info('Converting units')
 # W/m^2 --> J/m^2/s --> MJ/m^2/day
-rsds = dspoint_year_greg['rsds'].values/1000000*86400
+dschunk_greg['rsds'] = dschunk_greg['rsds']/1000000*86400
 
 # K --> degC
-tmax = dspoint_year_greg['tasmax'].values - 273.15
-tmin = dspoint_year_greg['tasmin'].values - 273.15
+dschunk_greg['tasmax'] = dschunk_greg['tasmax'] - 273.15
+dschunk_greg['tasmin'] = dschunk_greg['tasmin'] - 273.15
 
 # /1000 to get kPa from Pa. # Formula from bottom of webpage https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
-vp = (dspoint_year_greg['huss'].values * (dspoint_year_greg['psurf'].values/1000))/(0.622 + (0.378 * dspoint_year_greg['huss'].values))
-
-# already in m/s
-sfcWind = dspoint_year_greg['sfcWind'].values
+dschunk_greg['vp'] = (dschunk_greg['huss'] * (dschunk_greg['psurf']/1000))/(0.622 + (0.378 * dschunk_greg['huss']))
 
 # kg/m^2/s --> mm/day
-pr = dspoint_year_greg['pr'].values * 86400
+dschunk_greg['pr'] = dschunk_greg['pr'] * 86400
 
 
-# read in CO2 data from cloud
-logging.info('Getting CO2 data from cloud')
-CO2data = pd.read_csv('s3://chess-scape-co2files/CHESS-SCAPE_RCP85_' + ensmem + '.csv', storage_options={'endpoint_url': "https://fdri-o.s3-ext.jc.rl.ac.uk", 'anon': True})
-CO2data = CO2data.set_index("YEAR")
+# loop over coords in chunk
+xs = dschunk_greg['x'].values
+ys = dschunk_greg['y'].values
+fileheading = ["DOY,RAD,MINTMP,MAXTMP,VP,WIND,RAIN,CO2"]
+#for x in xs:
+#    for y in ys:
+x = xs[0]
+y = ys[0]
+timelen = len(dschunk_greg['time'])
+dspoint = dschunk_greg.sel(x=x, y=y)        
+dataarray = np.zeros((timelen,9))
+dataarray[:,0] = years
+dataarray[:,1] = doys
+dataarray[:,2] = dspoint['rsds'].values
+dataarray[:,3] = dspoint['tasmin'].values
+dataarray[:,4] = dspoint['taxmax'].values
+dataarray[:,5] = dspoint['vp'].values
+dataarray[:,6] = dspoint['sfcWind'].values
+dataarray[:,7] = dspoint['pr'].values
+dataarray[:,8] = CO2_daily.values
 
-
-# combine data into a pandas dataframe for easy write-out to file
-dfpoint_year_greg = pd.DataFrame(index = pd.Index(np.arange(1,len(dspoint_year_greg.time)+1), name='DOY'),
-                    columns = ['RAD', 'MINTMP', 'MAXTMP', 'VP', 'WIND', 'RAIN', 'CO2'])
-dfpoint_year_greg['RAD'] = rsds
-dfpoint_year_greg['MINTMP'] = tmin
-dfpoint_year_greg['MAXTMP'] = tmax
-dfpoint_year_greg['VP'] = vp
-dfpoint_year_greg['WIND'] = sfcWind
-dfpoint_year_greg['RAIN'] = pr
-dfpoint_year_greg['CO2'] = CO2data.loc[year].values[0]
-
-# write out to csv file
-logging.info('Writing to file')
-fnlon = str(lon).split('.')[0]
-fnlat = str(lat).split('.')[0]
-dfpoint_year_greg.to_csv('chess-scape_' + str(year) + '_' + str(ensmem) + '_' + str(fnlon) + '_' + str(fnlat) + '.csv')
+fname = 'chess-scape_1981-2079_' + str(ensmem) + '_' + str(x) + '_' + str(y) + '.csv'
+np.savetxt(fname, dataarray, fmt='%s', delimiter=',', header=fileheading)

@@ -23,15 +23,27 @@ logging.basicConfig(
 parser = argparse.ArgumentParser()
 parser.add_argument('--ensmem', type=str, required=True)
 parser.add_argument('--outpath', type=str, required=True)
+parser.add_argument('--xllcorner', type=float, required=True)
+parser.add_argument('--yllcorner', type=float, required=True)
+parser.add_argument('--xurcorner', type=float, required=True)
+parser.add_argument('--yurcorner', type=float, required=True)
+parser.add_argument('--startdate', type=str, required=True)
+parser.add_argument('--enddate', type=str, required=True)
 args = parser.parse_args()
 
 ensmem = args.ensmem # '01', '04', '06' or '15'
 outpath = args.outpath
+xllcorner = args.xllcorner
+yllcorner = args.yllcorner
+xurcorner = args.xurcorner
+yurcorner = args.yurcorner
+startdate = args.startdate
+enddate = args.enddate
 if not os.path.exists(outpath):
     os.makedirs(outpath)
 
 # create time coords
-dayindex = pd.date_range("1/1/1981", "31/12/2079")
+dayindex = pd.date_range(startdate, enddate)
 allyears = dayindex.year.values
 allyears = [int(year) for year in allyears]
 doys = dayindex.dayofyear.values
@@ -46,7 +58,7 @@ CO2datayr = CO2datayr.set_index("YEAR")
 
 # put onto daily index (from yearly)
 logging.info("Converting to a daily coordinate (from yearly)")
-dayindex = pd.date_range("1/1/1981", "31/12/2079")
+dayindex = pd.date_range(startdate, enddate)
 CO2_daily = pd.DataFrame(index = dayindex, 
                          columns = ['CO2'])
 years = np.unique(allyears)
@@ -79,9 +91,9 @@ ds = ds.set_coords(['lat','lon'])
 
 # select out & load coord block into RAM
 logging.info("Extracting out chunk to RAM")
-xslice = slice(400000,500000)
-yslice = slice(400000,500000)
-tslice = slice("1981-01-01", "2079-12-31")
+xslice = slice(xllcorner,xurcorner)
+yslice = slice(yllcorner,yurcorner)
+tslice = slice(startdate, enddate)
 with ProgressBar():
     dschunk = ds.sel(x=xslice, y=yslice).compute()
     

@@ -145,7 +145,7 @@ for x in xs:
         dataarray[:,7] = dspoint['pr'].values
         dataarray[:,8] = CO2_daily['CO2'].values
         
-        fname = os.path.join(outpath, 'chess-scape_1981-2079_' + str(ensmem) + '_' + str(x) + '_' + str(y) + '.csv')
+        fname = os.path.join(outpath, 'chess-scape_' + str(years[0]) + '-' + str(years[-1]) + '_' + str(ensmem) + '_' + str(x) + '_' + str(y) + '.csv')
         logging.info("Saving to " + fname)
         fmt_string = ['%.4d', '%1d', '%.5f', '%.2f', '%.2f', '%.5f', '%.2f', '%.5f', '%.4f']
         np.savetxt(fname, dataarray, fmt=fmt_string, delimiter=',', header=fileheading)

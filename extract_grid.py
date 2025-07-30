@@ -5,14 +5,9 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 import zarr
-import pyproj
-import cftime
-import datetime as dt
-import calendar
 import argparse
 import logging
 from dask.diagnostics import ProgressBar
-import pdb
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',

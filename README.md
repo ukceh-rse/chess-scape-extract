@@ -1,6 +1,7 @@
 # README
 
-Simple script for extracting point timeseries data from the [CHESS-SCAPE dataset](https://catalogue.ceda.ac.uk/uuid/8194b416cbee482b89e0dfbe17c5786c/) stored in JASMIN's S3 object store. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios at a daily, 1km resolution. This script extracts out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble (**Note:** Only works for ensmem 01 for now) for a specified year for RCP8.5 only. Data is linearly interpolated from a 360day calendar to a gregorian calendar using Xarray's [convert_calendar](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.convert_calendar.html) function. The script outputs a csv file YYYY_ENSMEM_LON_LAT.csv with rows representing the days of the year and columns for:
+A couple of scripts for extracting point timeseries data from the [CHESS-SCAPE dataset](https://catalogue.ceda.ac.uk/uuid/8194b416cbee482b89e0dfbe17c5786c/) stored in JASMIN's S3 object store. The CHESS-SCAPE dataset consists of 4 ensemble members and 4 RCP warming scenarios at a daily, 1km resolution. The extract.py script extracts out the nearest gridpoint for lon/lat coordinates specified, of the specified ensemble for a specified year for RCP8.5 only. (**Note:** Only works for ensmem 01 for now). The extract_grid.py file is similar, but extracts out all the gridpoints within a specified bounding box and time-period into separate csv files per gridpoint. Data is linearly interpolated from a 360day calendar to a gregorian calendar using Xarray's [convert_calendar](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.convert_calendar.html) function. The extract.py script outputs a single csv file YYYY_ENSMEM_LON_LAT.csv. The extract_grid.py file outputs a single csv file *per gridpoint* chess-scape_YYYY1-YYYY2_ENSMEM_X_Y.csv. All csv files are structured with rows representing days and columns for:
+- YEAR: The calendar year (extract_grid.py only)
 - DOY: Day of year
 - RAD: Total shortwave radiation in MJ/m^2/day
 - MINTMP: Minimum temperature in degC
@@ -14,12 +15,12 @@ The vapour pressure $e$ is derived from the specific humidity $q$ and surface ai
 
 $$e\approx \frac{qp}{0.622 + 0.378q}$$
 
-It was designed with the R-version of the [LINGRA-N Grass Yield model](https://models.pps.wur.nl/r-version-lingra-model) in mind, but could easily be adapted for other use-cases.
+These scripts were designed with the R-version of the [LINGRA-N Grass Yield model](https://models.pps.wur.nl/r-version-lingra-model) in mind, but could easily be adapted for other use-cases.
 
 ## Installation
 
 ### Requirements
-The script requires a python environment with the following packages installed:
+These scripts require a python environment with the following packages installed:
 - numpy
 - scipy
 - xarray

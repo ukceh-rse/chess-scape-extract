@@ -67,18 +67,35 @@ Now that you have an environment suitable for running the script, obtain a copy 
 
 ## Running instructions
 
-Once installed, the script can be run by navigating to the folder containing it and executing it as e.g.:
+Once installed, the scripts can be run by navigating to the folder containing them and executing them as e.g.:
 
-```python extract.py --lon -1 --lat 52 --year 2020 --ensmem 01```
+```python extract_point.py --lon -1 --lat 52 --year 2020 --ensmem 01```
+
+```python extract_grid.py --ensmem 01 --outpath "path/to/output/folder" --xllcorner 0 --yllcorner 0 --xurcorner 10000 --yurcorner 10000 --startdate "1981-01-01"--enddate "2079-12-31"```
 
 or 
 
-```ipython extract.py -- --lon -1 --lat 52 --year 2020 --ensmem 01```
+```ipython extract_point.py -- --lon -1 --lat 52 --year 2020 --ensmem 01```
+
+```ipython extract_grid.py -- --ensmem 01 --outpath "path/to/output/folder" --xllcorner 0 --yllcorner 0 --xurcorner 10000 --yurcorner 10000 --startdate "1981-01-01"--enddate "2079-12-31"```
 
 if using ipython.
 
-The four arguments required to be passed are:
+The four arguments required to be passed to extract_point.py are:
 - ```--lon``` longitude coordinate of location to extract nearest gridpoint from
 - ```--lat``` latitude coordinate of location to extract nearest gridpoint from
 - ```--year``` year of data to extract (from 1980 to 2080)
 - ```--ensmem``` which ensemble member of the CHESS-SCAPE dataset to use. Possible options are '01', '04', '06', '15'.
+
+The six arguments required to be passed to extract_grid.py are:
+- ```--ensmem``` which ensemble member of the CHESS-SCAPE dataset to use. Possible options are '01', '04', '06', '15'
+- ```--outpath``` folder in which to put the output csv files
+- ```--xllcorner``` x coordinate of the "lower left" corner of the bounding box within which all grid points will be extracted
+- ```--yllcorner``` y coordinate of the "lower left" corner of the bounding box within which all grid points will be extracted
+- ```--xurcorner``` x coordinate of the "upper right" corner of the bounding box within which all grid points will be extracted
+- ```--yurcorner``` y coordinate of the "upper right" corner of the bounding box within which all grid points will be extracted
+- ```--startdate``` start date (inclusive) of the period of data to extract in "YYYY-MM-DD"" format
+- ```--enddate``` end date (inclusive) of the period of data to extract in "YYYY-MM-DD"" format
+
+### Further instructions for extract_grid.py
+This script works by pulling out the requested block of data from the remote object store into memory before reformatting into csv files. The loading into memory means a single run of this script can consume a lot of memory resources if a large area and long time-span is requested. Therefore in these scenarios it is recommended to split the area into smaller regions and/or run each individual region in parallel on a HPC. A example batch-job submission script for doing this on a SLURM-based HPC environment is provided as template.sbatch. It is set up for the JASMIN LOTUS2 cluster, which requires certain options that might not be necessary or might need to be different for other systems. Hopefully the documentation for your HPC environment will provide information on what is required. 

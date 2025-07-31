@@ -35,7 +35,10 @@ yurcorner = args.yurcorner
 startdate = args.startdate
 enddate = args.enddate
 if not os.path.exists(outpath):
-    os.makedirs(outpath)
+    try:
+        os.makedirs(outpath)
+    except FileExistsError:
+        pass
 
 # create time coords
 dayindex = pd.date_range(startdate, enddate)

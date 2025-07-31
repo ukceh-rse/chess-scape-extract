@@ -81,13 +81,13 @@ or
 
 if using ipython.
 
-The four arguments required to be passed to extract_point.py are:
+The four arguments required to be passed to [extract_point.py](https://github.com/ukceh-rse/chess-scape-extract/blob/main/extract_point.py) are:
 - ```--lon``` longitude coordinate of location to extract nearest gridpoint from
 - ```--lat``` latitude coordinate of location to extract nearest gridpoint from
 - ```--year``` year of data to extract (from 1980 to 2080)
 - ```--ensmem``` which ensemble member of the CHESS-SCAPE dataset to use. Possible options are '01', '04', '06', '15'.
 
-The six arguments required to be passed to extract_grid.py are:
+The six arguments required to be passed to [extract_grid.py](https://github.com/ukceh-rse/chess-scape-extract/blob/main/extract_grid.py) are:
 - ```--ensmem``` which ensemble member of the CHESS-SCAPE dataset to use. Possible options are '01', '04', '06', '15'
 - ```--outpath``` folder in which to put the output csv files
 - ```--xllcorner``` x coordinate of the "lower left" corner of the bounding box within which all grid points will be extracted

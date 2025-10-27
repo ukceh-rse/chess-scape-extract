@@ -16,6 +16,8 @@ logging.basicConfig(
 
 # user inputs
 parser = argparse.ArgumentParser()
+parser.add_argument('--s3', action='store_true')
+parser.add_argument('--filepath', type=str, required=False)
 parser.add_argument('--ensmem', type=str, required=True)
 parser.add_argument('--outpath', type=str, required=True)
 parser.add_argument('--xllcorner', type=float, required=True)
@@ -27,6 +29,7 @@ parser.add_argument('--enddate', type=str, required=True)
 args = parser.parse_args()
 
 ensmem = args.ensmem # '01', '04', '06' or '15'
+filepath = args.filepath
 outpath = args.outpath
 xllcorner = args.xllcorner
 yllcorner = args.yllcorner
@@ -34,6 +37,7 @@ xurcorner = args.xurcorner
 yurcorner = args.yurcorner
 startdate = args.startdate
 enddate = args.enddate
+s3 = args.s3
 if not os.path.exists(outpath):
     try:
         os.makedirs(outpath)
@@ -63,29 +67,50 @@ years = np.unique(allyears)
 for year in years:
     CO2_daily.loc[str(year)] = CO2datayr.loc[year].values
 
-# load CHESS-SCAPE dataset from cloud
-# zarr v3 method
-logging.info('Loading CHESS-SCAPE datasets')
-fs = s3fs.S3FileSystem(anon=True, asynchronous=True, endpoint_url="https://chess-scape-o.s3-ext.jc.rl.ac.uk")
-zstore_tmax = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/tmax_" + ensmem + "_year100km.zarr")
-zstore_tmin = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/tmin_" + ensmem + "_year100km.zarr")
-zstore_rsds = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/rsds_" + ensmem + "_year100km.zarr")
-zstore_sfcWind = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/sfcWind_" + ensmem + "_year100km.zarr")
-zstore_pr = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/pr_" + ensmem + "_year100km.zarr")
-zstore_psurf = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/psurf_" + ensmem + "_year100km.zarr")
-zstore_huss = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/huss_" + ensmem + "_year100km.zarr")
 
-ds_tmax = xr.open_zarr(zstore_tmax, consolidated=False)
-ds_tmin = xr.open_zarr(zstore_tmin, consolidated=False)
-ds_rsds = xr.open_zarr(zstore_rsds, consolidated=False)
-ds_sfcWind = xr.open_zarr(zstore_sfcWind, consolidated=False)
-ds_pr = xr.open_zarr(zstore_pr, consolidated=False)
-ds_psurf = xr.open_zarr(zstore_psurf, consolidated=False)
-ds_huss = xr.open_zarr(zstore_huss, consolidated=False)
-
+# load data from s3 zarr or local netcdf files
+if s3:
+    # load CHESS-SCAPE dataset from cloud
+    # zarr v3 method
+    logging.info('Loading CHESS-SCAPE datasets from s3')
+    fs = s3fs.S3FileSystem(anon=True, asynchronous=True, endpoint_url="https://chess-scape-o.s3-ext.jc.rl.ac.uk")
+    zstore_tmax = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/tmax_" + ensmem + "_year100km.zarr")
+    zstore_tmin = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/tmin_" + ensmem + "_year100km.zarr")
+    zstore_rsds = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/rsds_" + ensmem + "_year100km.zarr")
+    zstore_sfcWind = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/sfcWind_" + ensmem + "_year100km.zarr")
+    zstore_pr = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/pr_" + ensmem + "_year100km.zarr")
+    zstore_psurf = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/psurf_" + ensmem + "_year100km.zarr")
+    zstore_huss = zarr.storage.FsspecStore(fs, path="ens" + ensmem + "-year100kmchunk/huss_" + ensmem + "_year100km.zarr")
+    
+    ds_tmax = xr.open_zarr(zstore_tmax, consolidated=False)
+    ds_tmin = xr.open_zarr(zstore_tmin, consolidated=False)
+    ds_rsds = xr.open_zarr(zstore_rsds, consolidated=False)
+    ds_sfcWind = xr.open_zarr(zstore_sfcWind, consolidated=False)
+    ds_pr = xr.open_zarr(zstore_pr, consolidated=False)
+    ds_psurf = xr.open_zarr(zstore_psurf, consolidated=False)
+    ds_huss = xr.open_zarr(zstore_huss, consolidated=False)
+else:
+    # load CHESS-SCAPE dataset from local netcdf files
+    logging.info('Loading CHESS-SCAPE datasets from local netcdf files')
+    logging.info('tasmax')
+    ds_tmax = xr.open_mfdataset(os.path.join(filepath, 'tasmax/*.nc'), parallel=True)
+    logging.info('tasmin')
+    ds_tmin = xr.open_mfdataset(os.path.join(filepath, 'tasmin/*.nc'), parallel=True)
+    logging.info('rsds')
+    ds_rsds = xr.open_mfdataset(os.path.join(filepath, 'rsds/*.nc'), parallel=True)
+    logging.info('sfcWind')
+    ds_sfcWind = xr.open_mfdataset(os.path.join(filepath, 'sfcWind/*.nc'), parallel=True)
+    logging.info('pr')
+    ds_pr = xr.open_mfdataset(os.path.join(filepath, 'pr/*.nc'), parallel=True)
+    logging.info('psurf')
+    ds_psurf = xr.open_mfdataset(os.path.join(filepath, 'psurf/*.nc'), parallel=True)
+    logging.info('huss')
+    ds_huss = xr.open_mfdataset(os.path.join(filepath, 'huss/*.nc'), parallel=True)
+    
+logging.info('Merging')
 ds = xr.merge([ds_tmax, ds_tmin, ds_rsds, ds_sfcWind, ds_pr, ds_psurf, ds_huss])
 ds = ds.set_coords(['lat','lon'])
-
+ds = ds.drop_vars(['time_bnds', 'x_bnds', 'y_bnds', 'crsOSGB'])
 
 # select out & load coord block into RAM
 logging.info("Extracting out chunk to RAM")

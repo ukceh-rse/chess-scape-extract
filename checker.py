@@ -13,6 +13,8 @@ logging.basicConfig(
 
 # user inputs
 parser = argparse.ArgumentParser()
+parser.add_argument('--s3', action='store_true')
+parser.add_argument('--filepath', type=str, required=False)
 parser.add_argument('--ensmem', type=str, required=True)
 parser.add_argument('--outpath', type=str, required=True)
 parser.add_argument('--xllcorner', type=float, required=True)
@@ -22,19 +24,25 @@ parser.add_argument('--yurcorner', type=float, required=True)
 args = parser.parse_args()
 
 ensmem = args.ensmem # '01', '04', '06' or '15'
+filepath = args.filepath
 outpath = args.outpath
 xllcorner = args.xllcorner
 yllcorner = args.yllcorner
 xurcorner = args.xurcorner
 yurcorner = args.yurcorner
+s3 = args.s3
 
 logging.info('Loading CHESS-SCAPE dataset')
-fs = s3fs.S3FileSystem(anon=True, asynchronous=True, 
-                       endpoint_url="https://chess-scape-o.s3-ext.jc.rl.ac.uk")
-zstore_rsds = zarr.storage.FsspecStore(fs, path="ens" + ensmem + 
-                                       "-year100kmchunk/rsds_" + ensmem + 
-                                       "_year100km.zarr")
-ds_rsds = xr.open_zarr(zstore_rsds, consolidated=False)
+if s3:
+    fs = s3fs.S3FileSystem(anon=True, asynchronous=True, 
+                           endpoint_url="https://chess-scape-o.s3-ext.jc.rl.ac.uk")
+    zstore_rsds = zarr.storage.FsspecStore(fs, path="ens" + ensmem + 
+                                           "-year100kmchunk/rsds_" + ensmem + 
+                                           "_year100km.zarr")
+    ds_rsds = xr.open_zarr(zstore_rsds, consolidated=False)
+else:
+    ds_rsds = xr.open_mfdataset(os.path.join(filepath, 'rsds/*.nc'), parallel=True)
+
 
 logging.info("Extracting out first timestep to RAM")
 xslice = slice(xllcorner,xurcorner)
